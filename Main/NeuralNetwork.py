@@ -7,13 +7,13 @@ import tensorflow as tf
 from tensorflow import keras
 
 import pathlib
-
+import time
 import datetime
 
 
 class NeuralNetwork:
 
-    def __init__(self,activationFunction,optimiser,size,name,patience = 5):
+    def __init__(self,activationFunction,optimiser,size,name,patience = 10):
 
         self.activationFunction = activationFunction
         self.optimiser = optimiser
@@ -52,7 +52,9 @@ class NeuralNetwork:
 
     def train(self,trainingData,trainingLabels,testingData,testingLabels,epochs):
         
-       
+        #Time it takes for training
+        startTime = time.time()
+
         early_history = self.model.fit(
             trainingData,
             trainingLabels,
@@ -61,7 +63,11 @@ class NeuralNetwork:
             verbose=0,
             callbacks=[ self.tensorboard_callback,self.early_stop],
             )
-        return (early_history.history["loss"],early_history.history["mae"],early_history.history["mse"])
+        
+        endTime = time.time()
+        timeTaken = endTime - startTime
+
+        return (early_history.history["mae"],early_history.history["mse"],timeTaken)
 
     def evaluate(self,testingData,testingLabels):
       
@@ -83,10 +89,50 @@ class NeuralNetwork:
 class LSTM(NeuralNetwork) :
     pass
 
-    # def buildModel(self) :
-    #     self.model = [
-    #         tf.keras.layers.LSTMCell
-    #     ]
+    def buildModel(self) :
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.LSTM(100, input_shape=inputShape, return_sequences=False),
+            #keras.layers.LSTM(4, return_sequences=True),
+            #keras.layers.LSTM(4, return_sequences=True),
+            #keras.layers.LSTM(4),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
+
+class StackedLSTM(NeuralNetwork) :
+    pass
+
+    def buildModel(self) :
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.LSTM(30, input_shape=inputShape, return_sequences=True),
+            keras.layers.LSTM(20,return_sequences=True),
+            keras.layers.LSTM(10),
+            keras.layers.Dense(20,activation=self.activationFunction),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
+    
+class GatedRecurrentUnitNetwork(NeuralNetwork) :
+    pass
+
+    def buildModel(self) :
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.GRU(30, input_shape=inputShape, return_sequences=True,activation=self.activationFunction),
+            keras.layers.GRU(20, return_sequences=True,activation=self.activationFunction),
+            keras.layers.GRU(10,activation=self.activationFunction),
+            keras.layers.Dense(20,activation=self.activationFunction),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
 
 class CNN(NeuralNetwork) :
     pass
@@ -106,32 +152,138 @@ class CNN(NeuralNetwork) :
             keras.layers.Conv1D(filters=72, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
             keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
 
-            # second layer
+            # fourth layer
             keras.layers.Conv1D(filters=144, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
-            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME')
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
             
+            keras.layers.Flatten(),
+            keras.layers.Dense(1,activation=self.activationFunction)
         ])
         return super().buildModel()
 
+class LargerFilterCNN(NeuralNetwork) :
+    pass
+
+    def buildModel(self):
+        # The inputs are 6-length vectors with 121 timesteps, and the batch size of None
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.Conv1D(input_shape=inputShape, filters=18, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            # second layer
+            keras.layers.Conv1D(filters=36, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # third layer
+            keras.layers.Conv1D(filters=72, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # fourth layer
+            keras.layers.Conv1D(filters=144, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            
+            keras.layers.Flatten(),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
+
+class LargeCNN(NeuralNetwork) : 
+    pass
     
+    def buildModel(self):
+    # The inputs are 6-length vectors with 121 timesteps, and the batch size of None
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.Conv1D(input_shape=inputShape, filters=18, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            # second layer
+            keras.layers.Conv1D(filters=36, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # third layer
+            keras.layers.Conv1D(filters=72, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # fourth layer
+            keras.layers.Conv1D(filters=144, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            
+            keras.layers.Conv1D(filters=288, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            keras.layers.Flatten(),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
+   
+class LargestCNN(NeuralNetwork) : 
+    pass
+    
+    def buildModel(self):
+    # The inputs are 6-length vectors with 121 timesteps, and the batch size of None
+        inputShape = (121,6)
+
+        self.model = keras.Sequential([
+            keras.layers.Conv1D(input_shape=inputShape, filters=18, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            # second layer
+            keras.layers.Conv1D(filters=36, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # third layer
+            keras.layers.Conv1D(filters=72, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            # fourth layer
+            keras.layers.Conv1D(filters=144, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+            
+            keras.layers.Conv1D(filters=288, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            keras.layers.Conv1D(filters=572, kernel_size=2,strides=1, padding='SAME', activation=tf.nn.relu),
+            keras.layers.MaxPooling1D(pool_size=2, strides=2, padding='SAME'),
+
+            keras.layers.Flatten(),
+            keras.layers.Dense(1,activation=self.activationFunction)
+        ])
+        return super().buildModel()
 
 class FeedForwardNN(NeuralNetwork) :
     pass
 
+    #Overload to reshape the data
+    def train(self,trainingData,trainingLabels,testingData,testingLabels,epochs):
+        #Datasets are (n,121,6)
+        flattenedTrainingData = trainingData.reshape((len(trainingData),726),order = 'F')
+        flattenedTestingData = testingData.reshape((len(testingData),726),order = 'F')
+        return super().train(flattenedTrainingData,trainingLabels,flattenedTestingData,testingLabels,epochs)
+
+        
+
+
     def buildModel(self):
-        inputShape = (1,6)
+        #Flat version of the 2-D arrays
+        inputShape = (726,)
 
         self.model = keras.Sequential(
                 [
-                    keras.layers.Dense(24,activation=self.activationFunction, input_shape=[inputShape],kernel_regularizer=keras.regularizers.l2(0.0001)),
-                    #keras.layers.BatchNormalization(),
+                    keras.layers.Dense(448,activation=self.activationFunction, input_shape=inputShape,kernel_regularizer=keras.regularizers.l2(0.0001)),
                     keras.layers.Dropout(0.3),
 
-                    keras.layers.Dense(24, activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
+                    keras.layers.Dense(224, activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
                     keras.layers.Dropout(0.2),
 
-                    keras.layers.Dense(12,activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
-                    keras.layers.Dropout(0.05),
+                    keras.layers.Dense(112,activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
+                    keras.layers.Dropout(0.1),
+
+                    keras.layers.Dense(64,activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
+                    keras.layers.Dropout(0.1),
+
+                    keras.layers.Dense(32,activation=self.activationFunction,kernel_regularizer=keras.regularizers.l2(0.0001)),
+                    keras.layers.Dropout(0.1),
 
                     keras.layers.Dense(1,activation=self.activationFunction)
                 ])

@@ -11,14 +11,16 @@ class NN_Manager :
 
         #Store a list of each networks performance as performance summaries
         self.networkTrainingPerformanceHistory = []
+
         self.networkTestingPerformanceHistory = []
 
     def trainNetworks(self) :
         for i in range( len(self.networks) ) :
-            (loss,mae,mse) = self.networks[i].train(self.trainingData,self.trainingLabels,
-                        self.testingData,self.testingLabels,50)
+            (mae,mse,timeToTrain) = self.networks[i].train(self.trainingData,self.trainingLabels,
+                        self.testingData,self.testingLabels,100)
+
             self.networkTrainingPerformanceHistory.append(
-                self.createNetworkPerformanceSummary(loss,mae,mse,self.networks[i].name)
+                self.createNetworkPerformanceSummary(mae,mse,self.networks[i].name,timeToTrain)
             )
 
     def evaluateNetworks(self) :
@@ -29,39 +31,34 @@ class NN_Manager :
                 self.networks[i].evaluate(self.testingData,self.testingLabels)
             )
 
-    def createNetworkPerformanceSummary(self,loss,mae,mse,networkName) :
+    def createNetworkPerformanceSummary(self,mae,mse,networkName,timeToTrain) :
         
-        #Create loss summary
-        lossSummary = NPS("loss")
-        summary = {
-            "name": networkName,
-            "epochs": range(len(loss)),
-            "performance": loss
-        }
-        
-        lossSummary.addSummary(summary)
-
+        networkSummary = {
+            "name" : networkName,
+            "timeToTrain" : timeToTrain,
+            "epochs" : list(range(len(mse))),
+            "evaluations" : []
+            }
+        networkSummaries = []
         #Create MAE summary
-        maeSummary = NPS("mae")
         summary1 = {
-            "name": networkName,
-            "epochs": range(len(mae)),
+            "metric":"mae",
             "performance": mae
         }
         
-        maeSummary.addSummary(summary1)
+        networkSummaries.append(summary1)
 
         #Create MSE summary
-        mseSummary = NPS("mse")
         summary2 = {
-            "name": networkName,
-            "epochs": range(len(mse)),
+            "metric" : "mse",
             "performance": mse
         }
         
-        mseSummary.addSummary(summary2)
+        networkSummaries.append(summary2)
 
-        return [lossSummary,maeSummary,mseSummary]
+        networkSummary["evaluations"] = networkSummaries
+
+        return networkSummary
 
         
 
@@ -79,10 +76,32 @@ class NN_Manager :
             network = NN.CNN("relu","adam","medium","CNN")
             network.buildModel()
             self.networks.append(network)
+
+        elif  networkName == "LargeCNN" :
+            network = NN.LargeCNN("relu","adam","medium","Larger CNN")
+            network.buildModel()
+            self.networks.append(network)
+
+        elif  networkName == "LargerFilterCNN" :
+            network = NN.LargerFilterCNN("relu","adam","medium","Larger filter CNN")
+            network.buildModel()
+            self.networks.append(network)
+
         elif  networkName == "LSTM" :
             network = NN.LSTM("relu","adam","medium","LSTM")
             network.buildModel()
             self.networks.append(network)
+
+        elif  networkName == "StackedLSTM" :
+            network = NN.StackedLSTM("relu","adam","medium","Stacked LSTM")
+            network.buildModel()
+            self.networks.append(network)
+
+        elif  networkName == "GRU" :
+            network = NN.GatedRecurrentUnitNetwork("relu","adam","medium","GRU")
+            network.buildModel()
+            self.networks.append(network)
+
         else :
             network = NN.FeedForwardNN("relu","adam","medium","FFNN")
             network.buildModel()
